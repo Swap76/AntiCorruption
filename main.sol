@@ -8,7 +8,6 @@ contract Anticorruption{
         string Name;
         uint BankAccountNo;
         bool Validity;
-        uint Tag;
     }
     
     struct StaticEntitiy{
@@ -16,7 +15,6 @@ contract Anticorruption{
         string Name;
         uint BankAccountNo;
         bool Validity;
-        uint Tag;
     }
     
     struct SchemesInfo{
@@ -47,7 +45,6 @@ contract Anticorruption{
         StaticEntities[UID].Name = _name;
         StaticEntities[UID].BankAccountNo = _BankAccountNo;
         StaticEntities[UID].Validity = true;
-        StaticEntities[UID].Tag = 1;
         StaticORNOt[UID] = true;
         return(" Entity Added Successfully.");
        }
@@ -56,11 +53,11 @@ contract Anticorruption{
        }
     }
     
-    function GetStaticEntity(uint UniqueCode) view returns (string Name ,uint BankAccountNo ) {
+    function GetStaticEntity(string UniqueCode) view returns (string Name ,uint BankAccountNo ) {
         // Get info About Entity
         uint UID = uint(keccak256(UniqueCode));
-        require(StaticEntities[UID].Validity==true);
-        return(StaticEntities[UID].Name,StaticEntities[UniqueCode].BankAccountNo);
+        require(StaticORNOt[UID] == true);
+        return(StaticEntities[UID].Name,StaticEntities[UID].BankAccountNo);
     }
     
     function AddEntity(uint AdharcardNo, string _name, uint _BankAccountNo,uint _Tag)  returns (string Status ) { 
@@ -69,7 +66,6 @@ contract Anticorruption{
         EntityInfo[AdharcardNo].Name = _name;
         EntityInfo[AdharcardNo].BankAccountNo = _BankAccountNo;
         EntityInfo[AdharcardNo].Validity = true;
-        EntityInfo[AdharcardNo].Tag =_Tag;
         return(" Entity Added Successfully.");
        }
        else{
@@ -113,6 +109,7 @@ contract Anticorruption{
         Schemes[sid].AuthorizedEntity[AdharcardNo] = true;
         Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[AdharcardNo] = _money;
         Schemes[sid].Authorized.push(AdharcardNo);
+        return("Person Added Successfully");
     }
     
     function AddAuthorizedCompany(string SID, uint CIN, uint _money)  returns (string Status) {
@@ -122,6 +119,8 @@ contract Anticorruption{
         Schemes[sid].AuthorizedEntity[CIN] = true;
         Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[CIN] = _money;
         Schemes[sid].Authorized.push(CIN);
+        return("Company Added Successfully");
+
     }
     
     function MoneyAPersonGetting(string SID,uint AdharcardNo) view returns (uint Money) {
@@ -136,35 +135,86 @@ contract Anticorruption{
         return(TotalMoney[UID]);
     }
     
-    function MoneyInHandOfEntityForPerticularSchemes(string SID, uint UID) view returns (uint Money) {
+    function MoneyReceivedInScheme(string SID,uint UID) returns (uint Money){
+        uint sid = uint(keccak256(SID));
+        require(Schemes[sid].Validity==true);
+        return(Schemes[sid].MoneyReceived[UID]);
+    }
+    
+    function MoneyATPresent(string SID, uint UID) view returns (uint Money) {
         // MoneyAPersonGetting
         uint sid = uint(keccak256(SID));
         require(Schemes[sid].Validity==true);
         return(Schemes[sid].MoneyAtPresent[UID]);
     }
     
-    function TransferMoney(string SID,uint From, uint To,uint money)  returns (string Status) {
+    function TransferMoneyStaticToNormal(string SID,string FromUID, uint To,uint money)  returns (string Status) {
         // TransferMoney Dont ristrict ststic entities
         uint sid = uint(keccak256(SID));
-        require(Schemes[sid].Validity==true);
-        if (StaticORNOt[To] == true){
+        uint fromUID = uint(keccak256(FromUID));
+        require(Schemes[sid].Validity==true && StaticORNOt[fromUID] == true);
+        if (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] <= money && Schemes[sid].AuthorizedEntity[To] == true){
             Schemes[sid].MoneyAtPresent[To] = Schemes[sid].MoneyAtPresent[To] + money;
-            Schemes[sid].MoneyAtPresent[From] = Schemes[sid].MoneyAtPresent[From] - money;
+            Schemes[sid].MoneyAtPresent[fromUID] = Schemes[sid].MoneyAtPresent[fromUID] - money;
             Schemes[sid].MoneyReceived[To] = money;
-            TotalMoney[From] = TotalMoney[From] - money;
-            TotalMoney[To] = TotalMoney[To] + money;
-        }
-        else if (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] <= money && Schemes[sid].AuthorizedEntity[To] == true){
-            Schemes[sid].MoneyAtPresent[To] = Schemes[sid].MoneyAtPresent[To] + money;
-            Schemes[sid].MoneyAtPresent[From] = Schemes[sid].MoneyAtPresent[From] - money;
-            Schemes[sid].MoneyReceived[To] = money;
-            TotalMoney[From] = TotalMoney[From] - money;
+            TotalMoney[fromUID] = TotalMoney[fromUID] - money;
             TotalMoney[To] = TotalMoney[To] + money;
         }
     } 
     
-    function MoneyToTag(string SID,uint Tag)  returns  (string Status) {
-        // MoneyToNextLevel
-        
+    function TransferMoneyStaticToStatic(string SID,string FromUID,string ToUID,uint money) returns (string Status){
+        uint sid = uint(keccak256(SID));
+        uint fromUID = uint(keccak256(fromUID));
+        uint toUID = uint(keccak256(ToUID));
+        require(Schemes[sid].Validity==true  && StaticORNOt[fromUID] == true  && StaticORNOt[toUID] == true);
+        Schemes[sid].MoneyAtPresent[toUID] = Schemes[sid].MoneyAtPresent[toUID] + money;
+        Schemes[sid].MoneyAtPresent[fromUID] = Schemes[sid].MoneyAtPresent[fromUID] - money;
+        Schemes[sid].MoneyReceived[toUID] = money;
+        TotalMoney[fromUID] = TotalMoney[fromUID] - money;
+        TotalMoney[toUID] = TotalMoney[toUID] + money;
+    }
+    
+    function TransferMoneyNormalToNormal(string SID,uint From, uint To,uint money){
+        uint sid = uint(keccak256(SID));
+        require(Schemes[sid].Validity==true);
+        if (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] <= money && Schemes[sid].AuthorizedEntity[To] == true){
+            Schemes[sid].MoneyAtPresent[To] = Schemes[sid].MoneyAtPresent[To] + money;
+            Schemes[sid].MoneyAtPresent[From] = Schemes[sid].MoneyAtPresent[From] - money;
+            Schemes[sid].MoneyReceived[To] = money;
+            TotalMoney[From] = TotalMoney[From] - money;
+            TotalMoney[To] = TotalMoney[To] + money;
+        }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
