@@ -38,9 +38,9 @@ contract Anticorruption{
     mapping(uint => uint) TotalMoney;
     mapping(uint => bool) BankAccount;
     
-    function AddStaticEntity(string UniqueCode, string _name, uint _BankAccountNo)  returns (string Status ) { 
+    function AddStaticEntity(uint UniqueCode, string _name, uint _BankAccountNo)  returns (string Status ) { 
         // Add new Entity
-        uint UID = uint(keccak256(UniqueCode));
+        uint UID = UniqueCode;
         if (StaticEntities[UID].Validity==false && BankAccount[_BankAccountNo] == false){ 
         StaticEntities[UID].Name = _name;
         StaticEntities[UID].BankAccountNo = _BankAccountNo;
@@ -53,14 +53,14 @@ contract Anticorruption{
        }
     }
     
-    function GetStaticEntity(string UniqueCode) view returns (string Name ,uint BankAccountNo ) {
+    function GetStaticEntity(uint UniqueCode) view returns (string Name ,uint BankAccountNo ) {
         // Get info About Entity
-        uint UID = uint(keccak256(UniqueCode));
+        uint UID = UniqueCode;
         require(StaticORNOt[UID] == true);
         return(StaticEntities[UID].Name,StaticEntities[UID].BankAccountNo);
     }
     
-    function AddEntity(uint AdharcardNo, string _name, uint _BankAccountNo,uint _Tag)  returns (string Status ) { 
+    function AddEntity(uint AdharcardNo, string _name, uint _BankAccountNo)  returns (string Status ) { 
         // Add new Entity
         if (EntityInfo[AdharcardNo].Validity==false && BankAccount[_BankAccountNo] == false){ 
         EntityInfo[AdharcardNo].Name = _name;
@@ -135,7 +135,7 @@ contract Anticorruption{
         return(TotalMoney[UID]);
     }
     
-    function MoneyReceivedInScheme(string SID,uint UID) returns (uint Money){
+    function MoneyReceivedInScheme(string SID,uint UID) view returns (uint Money){
         uint sid = uint(keccak256(SID));
         require(Schemes[sid].Validity==true);
         return(Schemes[sid].MoneyReceived[UID]);
@@ -148,42 +148,49 @@ contract Anticorruption{
         return(Schemes[sid].MoneyAtPresent[UID]);
     }
     
-    function TransferMoneyStaticToNormal(string SID,string FromUID, uint To,uint money)  returns (string Status) {
+    function TransferMoney(string SID,uint From, uint To,uint money)  returns (string Status) {
         // TransferMoney Dont ristrict ststic entities
         uint sid = uint(keccak256(SID));
-        uint fromUID = uint(keccak256(FromUID));
-        require(Schemes[sid].Validity==true && StaticORNOt[fromUID] == true);
-        if (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] <= money && Schemes[sid].AuthorizedEntity[To] == true){
-            Schemes[sid].MoneyAtPresent[To] = Schemes[sid].MoneyAtPresent[To] + money;
-            Schemes[sid].MoneyAtPresent[fromUID] = Schemes[sid].MoneyAtPresent[fromUID] - money;
-            Schemes[sid].MoneyReceived[To] = money;
-            TotalMoney[fromUID] = TotalMoney[fromUID] - money;
-            TotalMoney[To] = TotalMoney[To] + money;
-        }
-    } 
-    
-    function TransferMoneyStaticToStatic(string SID,string FromUID,string ToUID,uint money) returns (string Status){
-        uint sid = uint(keccak256(SID));
-        uint fromUID = uint(keccak256(fromUID));
-        uint toUID = uint(keccak256(ToUID));
-        require(Schemes[sid].Validity==true  && StaticORNOt[fromUID] == true  && StaticORNOt[toUID] == true);
-        Schemes[sid].MoneyAtPresent[toUID] = Schemes[sid].MoneyAtPresent[toUID] + money;
-        Schemes[sid].MoneyAtPresent[fromUID] = Schemes[sid].MoneyAtPresent[fromUID] - money;
-        Schemes[sid].MoneyReceived[toUID] = money;
-        TotalMoney[fromUID] = TotalMoney[fromUID] - money;
-        TotalMoney[toUID] = TotalMoney[toUID] + money;
-    }
-    
-    function TransferMoneyNormalToNormal(string SID,uint From, uint To,uint money){
-        uint sid = uint(keccak256(SID));
-        require(Schemes[sid].Validity==true);
-        if (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] <= money && Schemes[sid].AuthorizedEntity[To] == true){
+        require(Schemes[sid].Validity==true && (StaticORNOt[To] == true || (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] <= money && Schemes[sid].AuthorizedEntity[To] == true)));
+        if (StaticORNOt[To] == true){
             Schemes[sid].MoneyAtPresent[To] = Schemes[sid].MoneyAtPresent[To] + money;
             Schemes[sid].MoneyAtPresent[From] = Schemes[sid].MoneyAtPresent[From] - money;
             Schemes[sid].MoneyReceived[To] = money;
             TotalMoney[From] = TotalMoney[From] - money;
             TotalMoney[To] = TotalMoney[To] + money;
         }
+        else if (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] <= money && Schemes[sid].AuthorizedEntity[To] == true){
+            Schemes[sid].MoneyAtPresent[To] = Schemes[sid].MoneyAtPresent[To] + money;
+            Schemes[sid].MoneyAtPresent[From] = Schemes[sid].MoneyAtPresent[From] - money;
+            Schemes[sid].MoneyReceived[To] = money;
+            TotalMoney[From] = TotalMoney[From] - money;
+            TotalMoney[To] = TotalMoney[To] + money;
+        }
+    } 
+    
+    function AddMoney(string SID,uint UID,uint Money) {
+        uint sid = uint(keccak256(SID));
+        require(Schemes[sid].Validity==true);
+        if(StaticEntities[UID].Validity == true || EntityInfo[UID].Validity == true){
+            TotalMoney[UID] = TotalMoney[UID] + Money;
+            Schemes[sid].MoneyAtPresent[UID] = Schemes[sid].MoneyAtPresent[UID] + Money;
+        }
+    }
+    
+    function DriverFunction(){
+        AddStaticEntity(1046,"Maharastra",4);
+        AddStaticEntity(1001,"Mumbai",5);
+        AddStaticEntity(1010,"NaviMumbai",6);
+        AddEntity(1,"Swapnil",1);
+        AddEntity(2,"Pradnya",2);
+        AddEntity(3,"Omkar",3);
+        AddScheme("PMJDY","Pradhan Mantri Jan Dhan Yogana","Pradhan Mantri Jan-Dhan Yojana (PMJDY) is National Mission for Financial Inclusion to ensure access to financial services, namely, Banking/ Savings & Deposit Accounts, Remittance, Credit, Insurance, Pension in an affordable manner.",1000,222222);
+        AddAuthorizedPerson("PMJDY",1,10);
+        AddAuthorizedPerson("PMJDY",2,20);
+        AddAuthorizedPerson("PMJDY",3,30);
+        AddMoney("PMJDY",1046,1000);
+        AddMoney("PMJDY",1001,500);
+        AddMoney("PMJDY",1010,100);
     }
 }
 
