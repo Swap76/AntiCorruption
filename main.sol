@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 contract Anticorruption{
     address Goverment = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
+    
     struct BasicInfoOfEntity{
         // Basic info of every entity
         string Name;
@@ -29,6 +30,7 @@ contract Anticorruption{
         mapping(uint => uint) MoneyReceived;
         mapping(uint => uint) MoneyAtPresent;
         mapping(uint => bool) MoneyGiven;
+        mapping(uint => bool) BenifitsGiven;
         uint [] Authorized;
         uint [] AddedAfterLock;
         bool Validity;
@@ -153,7 +155,7 @@ contract Anticorruption{
     
     function LockScheme(string SID) returns (string Status) {
         uint sid = uint(keccak256(SID));
-        require(Schemes[sid].Validity==true && Schemes[sid].SuperUser==msg.sender);
+        require(Schemes[sid].Validity==true && (Schemes[sid].SuperUser==msg.sender || Goverment==msg.sender ));
         Schemes[sid].Lock = true;
         return("Locked Successfully");
     }
@@ -163,6 +165,12 @@ contract Anticorruption{
         require(Schemes[sid].Validity==true && Schemes[sid].SuperUser==msg.sender);
         Schemes[sid].Lock = false;
         return("Locked Successfully");
+    }
+    
+    function EntitiesAddedAfterLock(string SID) view returns (uint []) {
+        uint sid = uint(keccak256(SID));
+        require(Schemes[sid].Validity==true);
+        return(Schemes[sid].AddedAfterLock);
     }
     
     function MoneyAPersonGetting(string SID,uint AdharcardNo) view returns (uint Money) {
@@ -200,6 +208,7 @@ contract Anticorruption{
             Schemes[sid].MoneyReceived[To] = money;
             TotalMoney[From] = TotalMoney[From] - money;
             TotalMoney[To] = TotalMoney[To] + money;
+            
         }
         else if (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] <= money && Schemes[sid].AuthorizedEntity[To] == true){
             Schemes[sid].MoneyAtPresent[To] = Schemes[sid].MoneyAtPresent[To] + money;
@@ -207,8 +216,33 @@ contract Anticorruption{
             Schemes[sid].MoneyReceived[To] = money;
             TotalMoney[From] = TotalMoney[From] - money;
             TotalMoney[To] = TotalMoney[To] + money;
-        }
+            Schemes[sid].BenifitsGiven[To] = true;
+            }
     } 
+    
+    function BenifitsReachedTill(string SID) view returns (uint []) {
+        uint sid = uint(keccak256(SID));
+        require(Schemes[sid].Validity==true);
+        uint [] Temp;
+        uint l = Schemes[sid].Authorized.length;
+        for(uint i; i< l; i++){ 
+            if(Schemes[sid].AuthorizedEntity[Schemes[sid].Authorized[i]] == true)
+                Temp.push(Schemes[sid].Authorized[i]);
+        }
+        return Temp;
+    }
+    
+    function BenifitsNotReachedTill(string SID) view returns (uint []) {
+        uint sid = uint(keccak256(SID));
+        require(Schemes[sid].Validity==true);
+        uint [] Temp;
+        uint l = Schemes[sid].Authorized.length;
+        for(uint i; i< l; i++){ 
+            if(Schemes[sid].AuthorizedEntity[Schemes[sid].Authorized[i]] == false)
+                Temp.push(Schemes[sid].Authorized[i]);
+        }
+        return Temp;
+    }
     
     function AddMoney(string SID,uint UID,uint Money) {
         uint sid = uint(keccak256(SID));
@@ -225,7 +259,7 @@ contract Anticorruption{
         AddStaticEntity(1010,"NaviMumbai",6);
         AddEntity(1,"Swapnil",1);
         AddEntity(2,"Pradnya",2);
-        AddEntity(3,"Omkar",3);
+        AddEntity(3,"Shweta",3);
         AddScheme("PMJDY","Pradhan Mantri Jan Dhan Yogana","Pradhan Mantri Jan-Dhan Yojana (PMJDY) is National Mission for Financial Inclusion to ensure access to financial services, namely, Banking/ Savings & Deposit Accounts, Remittance, Credit, Insurance, Pension in an affordable manner.",1000,222222,0x14723a09acff6d2a60dcdf7aa4aff308fddc160c);
         AddAuthorizedPerson("PMJDY",1,10);
         AddAuthorizedPerson("PMJDY",2,20);
