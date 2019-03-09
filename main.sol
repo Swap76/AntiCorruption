@@ -2,7 +2,7 @@ pragma solidity ^0.4.19;
 pragma experimental ABIEncoderV2;
 
 contract Anticorruption{
-    
+    address Goverment = 0xca35b7d915458ef540ade6068dfe2f44e8fa733c;
     struct BasicInfoOfEntity{
         // Basic info of every entity
         string Name;
@@ -23,18 +23,23 @@ contract Anticorruption{
         string Description;
         uint TotalAmount;
         uint BankAccountNo;
+        address SuperUser;
         mapping(uint => bool) AuthorizedEntity;
         mapping(uint => uint) MoneyAllocatedForEntityForPerticularEntity;
         mapping(uint => uint) MoneyReceived;
         mapping(uint => uint) MoneyAtPresent;
-        uint [] Authorized; 
+        mapping(uint => bool) MoneyGiven;
+        uint [] Authorized;
+        uint [] AddedAfterLock;
         bool Validity;
+        bool Lock;
     }
     
     mapping(uint => bool) StaticORNOt;
+    mapping(address => uint) AddressOfStaticEntity;
     mapping(uint => StaticEntitiy) StaticEntities;
     mapping(uint => BasicInfoOfEntity) EntityInfo;
-    mapping(uint => SchemesInfo) Schemes; 
+    mapping(uint => SchemesInfo) Schemes;
     mapping(uint => uint) TotalMoney;
     mapping(uint => bool) BankAccount;
     
@@ -42,6 +47,7 @@ contract Anticorruption{
         // Add new Entity
         uint UID = UniqueCode;
         if (StaticEntities[UID].Validity==false && BankAccount[_BankAccountNo] == false){ 
+        AddressOfStaticEntity[msg.sender] = UniqueCode;
         StaticEntities[UID].Name = _name;
         StaticEntities[UID].BankAccountNo = _BankAccountNo;
         StaticEntities[UID].Validity = true;
@@ -79,14 +85,16 @@ contract Anticorruption{
         return(EntityInfo[AdharcardNo].Name,EntityInfo[AdharcardNo].BankAccountNo);
     }
     
-    function AddScheme(string SID,string _name,string _Description,uint _amount,uint _BankAccountNo)  returns (string Status)  {
+    function AddScheme(string SID,string _name,string _Description,uint _amount,uint _BankAccountNo,address _Superuser)  returns (string Status)  {
         // Add new Schemes
+        require(msg.sender == Goverment); // Only Goverment can create Schemes
         uint sid = uint(keccak256(SID));
         if (Schemes[sid].Validity==false && BankAccount[_BankAccountNo] == false ){
             Schemes[sid].Name = _name;
             Schemes[sid].Description = _Description;
             Schemes[sid].TotalAmount = _amount;
             Schemes[sid].BankAccountNo = _BankAccountNo;
+            Schemes[sid].SuperUser = _Superuser;
             Schemes[sid].Validity = true;
             return(" Scheme Created Successfully.");
         }
@@ -105,22 +113,56 @@ contract Anticorruption{
     function AddAuthorizedPerson(string SID,uint AdharcardNo, uint _money)  returns (string Status) {
         // AddAuthorizedPerson
         uint sid = uint(keccak256(SID));
-        require(Schemes[sid].Validity==true);
-        Schemes[sid].AuthorizedEntity[AdharcardNo] = true;
-        Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[AdharcardNo] = _money;
-        Schemes[sid].Authorized.push(AdharcardNo);
-        return("Person Added Successfully");
+        uint UniqueCode = AddressOfStaticEntity[msg.sender];
+        require(Schemes[sid].Validity==true && (Schemes[sid].SuperUser == msg.sender || StaticORNOt[UniqueCode] == true)); //Only SuperUser can add Authorized persons
+        if(Schemes[sid].Lock == false)
+        {
+            Schemes[sid].AuthorizedEntity[AdharcardNo] = true;
+            Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[AdharcardNo] = _money;
+            Schemes[sid].Authorized.push(AdharcardNo);
+            return("Person Added Successfully");
+        }
+        else {
+            Schemes[sid].AuthorizedEntity[AdharcardNo] = true;
+            Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[AdharcardNo] = _money;
+            Schemes[sid].Authorized.push(AdharcardNo);
+            Schemes[sid].AddedAfterLock.push(AdharcardNo);
+            return("Person Added Successfully");
+        }
     }
     
     function AddAuthorizedCompany(string SID, uint CIN, uint _money)  returns (string Status) {
         // AddAuthorizedCompany
         uint sid = uint(keccak256(SID));
-        require(Schemes[sid].Validity==true);
-        Schemes[sid].AuthorizedEntity[CIN] = true;
-        Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[CIN] = _money;
-        Schemes[sid].Authorized.push(CIN);
-        return("Company Added Successfully");
-
+        uint UniqueCode = AddressOfStaticEntity[msg.sender];
+        require(Schemes[sid].Validity==true && (Schemes[sid].SuperUser == msg.sender || StaticORNOt[UniqueCode] == true));
+        if(Schemes[sid].Lock == false){
+            Schemes[sid].AuthorizedEntity[CIN] = true;
+            Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[CIN] = _money;
+            Schemes[sid].Authorized.push(CIN);
+            return("Company Added Successfully");
+        }
+        else {
+            Schemes[sid].AuthorizedEntity[CIN] = true;
+            Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[CIN] = _money;
+            Schemes[sid].Authorized.push(CIN);
+            Schemes[sid].AddedAfterLock.push(CIN);
+            return("Company Added Successfully");
+        }
+    }
+    
+    function LockScheme(string SID) returns (string Status) {
+        uint sid = uint(keccak256(SID));
+        require(Schemes[sid].Validity==true && Schemes[sid].SuperUser==msg.sender);
+        Schemes[sid].Lock = true;
+        return("Locked Successfully");
+    }
+    
+    function UnlockockScheme(string SID) returns (string Status) {
+        uint sid = uint(keccak256(SID));
+        require(Schemes[sid].Validity==true && Schemes[sid].SuperUser==msg.sender);
+        Schemes[sid].Lock = false;
+        return("Locked Successfully");
     }
     
     function MoneyAPersonGetting(string SID,uint AdharcardNo) view returns (uint Money) {
@@ -184,7 +226,7 @@ contract Anticorruption{
         AddEntity(1,"Swapnil",1);
         AddEntity(2,"Pradnya",2);
         AddEntity(3,"Omkar",3);
-        AddScheme("PMJDY","Pradhan Mantri Jan Dhan Yogana","Pradhan Mantri Jan-Dhan Yojana (PMJDY) is National Mission for Financial Inclusion to ensure access to financial services, namely, Banking/ Savings & Deposit Accounts, Remittance, Credit, Insurance, Pension in an affordable manner.",1000,222222);
+        AddScheme("PMJDY","Pradhan Mantri Jan Dhan Yogana","Pradhan Mantri Jan-Dhan Yojana (PMJDY) is National Mission for Financial Inclusion to ensure access to financial services, namely, Banking/ Savings & Deposit Accounts, Remittance, Credit, Insurance, Pension in an affordable manner.",1000,222222,0x14723a09acff6d2a60dcdf7aa4aff308fddc160c);
         AddAuthorizedPerson("PMJDY",1,10);
         AddAuthorizedPerson("PMJDY",2,20);
         AddAuthorizedPerson("PMJDY",3,30);
