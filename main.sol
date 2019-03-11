@@ -33,6 +33,7 @@ contract Anticorruption{
         mapping(uint => bool) BenifitsGiven;
         uint [] Authorized;
         uint [] AddedAfterLock;
+        uint [] BenifitReached;
         bool Validity;
         bool Lock;
     }
@@ -208,7 +209,6 @@ contract Anticorruption{
             Schemes[sid].MoneyReceived[To] = money;
             TotalMoney[From] = TotalMoney[From] - money;
             TotalMoney[To] = TotalMoney[To] + money;
-            
         }
         else if (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] <= money && Schemes[sid].AuthorizedEntity[To] == true){
             Schemes[sid].MoneyAtPresent[To] = Schemes[sid].MoneyAtPresent[To] + money;
@@ -217,32 +217,28 @@ contract Anticorruption{
             TotalMoney[From] = TotalMoney[From] - money;
             TotalMoney[To] = TotalMoney[To] + money;
             Schemes[sid].BenifitsGiven[To] = true;
+            Schemes[sid].BenifitReached.push(To);
             }
     } 
     
-    function BenifitsReachedTill(string SID) view returns (uint []) {
+    function BenifitsReached(string SID)  returns (uint []) {
         uint sid = uint(keccak256(SID));
         require(Schemes[sid].Validity==true);
-        uint [] Temp;
-        uint l = Schemes[sid].Authorized.length;
-        for(uint i; i< l; i++){ 
-            if(Schemes[sid].AuthorizedEntity[Schemes[sid].Authorized[i]] == true)
-                Temp.push(Schemes[sid].Authorized[i]);
-        }
-        return Temp;
+        return  Schemes[sid].BenifitReached;
     }
     
-    function BenifitsNotReachedTill(string SID) view returns (uint []) {
-        uint sid = uint(keccak256(SID));
-        require(Schemes[sid].Validity==true);
-        uint [] Temp;
-        uint l = Schemes[sid].Authorized.length;
-        for(uint i; i< l; i++){ 
-            if(Schemes[sid].AuthorizedEntity[Schemes[sid].Authorized[i]] == false)
-                Temp.push(Schemes[sid].Authorized[i]);
-        }
-        return Temp;
-    }
+    // function BenifitsNotReached(string SID)  returns (uint []) {
+    //     uint sid = uint(keccak256(SID));
+    //     require(Schemes[sid].Validity==true);
+    //     uint [] Temp;
+    //     uint l = Schemes[sid].Authorized.length;
+    //     for(uint i=0; i< l; i++){ 
+    //         if(!Schemes[sid].AuthorizedEntity[Schemes[sid].Authorized[i]]){
+    //               Temp.push(Schemes[sid].Authorized[i]);
+    //         }
+    //     }
+    //     return Temp;
+    // }
     
     function AddMoney(string SID,uint UID,uint Money) {
         uint sid = uint(keccak256(SID));
@@ -267,8 +263,11 @@ contract Anticorruption{
         AddMoney("PMJDY",1046,1000);
         AddMoney("PMJDY",1001,500);
         AddMoney("PMJDY",1010,100);
+        TransferMoney("PMJDY",1046,2,25);
+        TransferMoney("PMJDY",1046,3,35);
     }
 }
+
 
 
 
