@@ -1,37 +1,61 @@
-1,"Swapnil",1
-2,"Pradnya",2
-3,"Omkar",3
-1046,"Maharastra",4
-1001,"Mumbai",5
-1010,"NaviMumbai",6
+// Driver function 
+	// Added static entities
+	AddStaticEntity(1046,"Maharastra",4);
+	AddStaticEntity(1001,"Mumbai",5);
+	AddStaticEntity(1010,"NaviMumbai",6);
+	// Added Normal entities
+	AddEntity(1,"Swapnil",1);
+	AddEntity(2,"Pradnya",2);
+	AddEntity(3,"Shweta",3);
 
-1
-2
-3
+	// New Scheme Created by goverment
+	AddScheme("PMJDY","Pradhan Mantri Jan Dhan Yogana","Pradhan Mantri Jan-Dhan Yojana (PMJDY) is National Mission for Financial Inclusion to ensure access to financial services, namely, Banking/ Savings & Deposit Accounts, Remittance, Credit, Insurance, Pension in an affordable manner.",1000,222222,0x14723a09acff6d2a60dcdf7aa4aff308fddc160c);
 
-1046
-1001
-1010
+	// Authorized persons added for perticular scheme
+	AddAuthorizedPerson("PMJDY",1,10);
+	AddAuthorizedPerson("PMJDY",2,20);
+	AddAuthorizedPerson("PMJDY",3,30);
 
-"PMJDY","Pradhan Mantri Jan Dhan Yogana","Pradhan Mantri Jan-Dhan Yojana (PMJDY) is National Mission for Financial Inclusion to ensure access to financial services, namely, Banking/ Savings & Deposit Accounts, Remittance, Credit, Insurance, Pension in an affordable manner.
-",1000,222222,0x14723a09acff6d2a60dcdf7aa4aff308fddc160c
+	// Money add for test perposes 
+	AddMoney("PMJDY",1046,1000);
+	AddMoney("PMJDY",1001,500);
+	AddMoney("PMJDY",1010,100);
 
-"PMJDY"
+	// Toney transfer simulated 
+	TransferMoney("PMJDY",1046,2,25);
 
-"PMJDY",1,10
-"PMJDY",2,20
-"PMJDY",3,30
+// Demonstration 
+	// Get info about a scheme 
+	"PMJDY"
 
-"PMJDY",1
-"PMJDY",2
-"PMJDY",3
+	// Get static entities 
+	1046 // Maharastra 
+	1001  // Mumbai
 
-"PMJDY",1046,1000
-"PMJDY",1001,500
-"PMJDY",1010,100
+	// Check how much money a person is getting 
+	"PMJDY",1
+	"PMJDY",2
 
-"PMJDY",1046,1,10
+	// Add new entity
+	4,"Rahul",4
 
+	// Lock the scheme 
+	"PMJDY"
 
+	// Make rahul authorized 
+	"PMJDY",4,40
 
+	// Check entites added after lock
+	"PMJDY"
 
+	// Try to mak money transfer to these 
+	"PMJDY",1046,1,10
+
+	// This will fail as assigned money is less than the given
+	"PMJDY",1046,3,10
+
+	// Tihs will be succedfull as 30 is money assisgned for that entity 
+	"PMJDY",1046,3,30
+
+	// Check money received in a perticular scheme 
+	"PMJDY",1
