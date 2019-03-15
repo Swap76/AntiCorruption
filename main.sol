@@ -117,7 +117,7 @@ contract Anticorruption{
         // AddAuthorizedPerson
         uint sid = uint(keccak256(SID));
         uint UniqueCode = AddressOfStaticEntity[msg.sender];
-        require(Schemes[sid].Validity==true && (Schemes[sid].SuperUser == msg.sender || StaticORNOt[UniqueCode] == true)); //Only SuperUser can add Authorized persons
+        require(Schemes[sid].Validity==true && (Schemes[sid].SuperUser == msg.sender || StaticORNOt[UniqueCode] == true) && Schemes[sid].AuthorizedEntity[AdharcardNo] == false); //Only SuperUser can add Authorized persons
         if(Schemes[sid].Lock == false)
         {
             Schemes[sid].AuthorizedEntity[AdharcardNo] = true;
@@ -138,7 +138,7 @@ contract Anticorruption{
         // AddAuthorizedCompany
         uint sid = uint(keccak256(SID));
         uint UniqueCode = AddressOfStaticEntity[msg.sender];
-        require(Schemes[sid].Validity==true && (Schemes[sid].SuperUser == msg.sender || StaticORNOt[UniqueCode] == true));
+        require(Schemes[sid].Validity==true && (Schemes[sid].SuperUser == msg.sender || StaticORNOt[UniqueCode] == true) && Schemes[sid].AuthorizedEntity[CIN] == false);
         if(Schemes[sid].Lock == false){
             Schemes[sid].AuthorizedEntity[CIN] = true;
             Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[CIN] = _money;
@@ -202,15 +202,16 @@ contract Anticorruption{
     function TransferMoney(string SID,uint From, uint To,uint money)  returns (string Status) {
         // TransferMoney Dont ristrict ststic entities
         uint sid = uint(keccak256(SID));
-        require(Schemes[sid].Validity==true && (StaticORNOt[To] == true || (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] <= money && Schemes[sid].AuthorizedEntity[To] == true)));
+        require(Schemes[sid].Validity==true && (StaticORNOt[To] == true || (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] == money && Schemes[sid].AuthorizedEntity[To] == true)));
         if (StaticORNOt[To] == true){
             Schemes[sid].MoneyAtPresent[To] = Schemes[sid].MoneyAtPresent[To] + money;
             Schemes[sid].MoneyAtPresent[From] = Schemes[sid].MoneyAtPresent[From] - money;
             Schemes[sid].MoneyReceived[To] = money;
             TotalMoney[From] = TotalMoney[From] - money;
             TotalMoney[To] = TotalMoney[To] + money;
+            Schemes[sid].BenifitReached.push(To);
         }
-        else if (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] <= money && Schemes[sid].AuthorizedEntity[To] == true){
+        else if (Schemes[sid].MoneyAllocatedForEntityForPerticularEntity[To] == money && Schemes[sid].AuthorizedEntity[To] == true){
             Schemes[sid].MoneyAtPresent[To] = Schemes[sid].MoneyAtPresent[To] + money;
             Schemes[sid].MoneyAtPresent[From] = Schemes[sid].MoneyAtPresent[From] - money;
             Schemes[sid].MoneyReceived[To] = money;
@@ -226,19 +227,6 @@ contract Anticorruption{
         require(Schemes[sid].Validity==true);
         return  Schemes[sid].BenifitReached;
     }
-    
-    // function BenifitsNotReached(string SID)  returns (uint []) {
-    //     uint sid = uint(keccak256(SID));
-    //     require(Schemes[sid].Validity==true);
-    //     uint [] Temp;
-    //     uint l = Schemes[sid].Authorized.length;
-    //     for(uint i=0; i< l; i++){ 
-    //         if(!Schemes[sid].AuthorizedEntity[Schemes[sid].Authorized[i]]){
-    //               Temp.push(Schemes[sid].Authorized[i]);
-    //         }
-    //     }
-    //     return Temp;
-    // }
     
     function AddMoney(string SID,uint UID,uint Money) {
         uint sid = uint(keccak256(SID));
@@ -263,11 +251,9 @@ contract Anticorruption{
         AddMoney("PMJDY",1046,1000);
         AddMoney("PMJDY",1001,500);
         AddMoney("PMJDY",1010,100);
-        TransferMoney("PMJDY",1046,2,25);
-        TransferMoney("PMJDY",1046,3,35);
+        TransferMoney("PMJDY",1046,2,20);
     }
 }
-
 
 
 
